@@ -19,5 +19,11 @@ From server, start, stop or switch clients:
 
 View streaming
 ```
-vlc http://server_ip:8090/stream --loop
+vlc rtsp://server_ip:5554/stream --loop
+
+You might need to sync your machines' time:
+```
+sudo ntpdate ntp.tuna.tsinghua.edu.cn
+sudo /usr/sbin/VBoxService --timesync-set-start
+```
 ```
