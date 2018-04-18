@@ -16,3 +16,8 @@ From server, start, stop or switch clients:
 ./client.py stop client_b_ip:2323
 ./client.py switch client_a_ip:2323 client_b_ip:2323
 ```
+
+View streaming
+```
+vlc http://server_ip:8090/stream --loop
+```
