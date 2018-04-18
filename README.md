@@ -1,4 +1,4 @@
-Suppose you have two computer A and B wanting to stream to server:
+Suppose you have two computers A and B wanting to stream to server:
 
 Start a ffserver in the server:
 ```
@@ -20,10 +20,10 @@ From server, start, stop or switch clients:
 View streaming
 ```
 vlc rtsp://server_ip:5554/stream --loop
+```
 
 You might need to sync your machines' time:
 ```
 sudo ntpdate ntp.tuna.tsinghua.edu.cn
 sudo /usr/sbin/VBoxService --timesync-set-start
-```
 ```
