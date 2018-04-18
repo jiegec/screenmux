@@ -1,4 +1,4 @@
-Suppose you have two computer A and B wants to stream to server:
+Suppose you have two computer A and B wanting to stream to server:
 
 Start a ffserver in the server:
 ```
