@@ -5,9 +5,9 @@
 while true; do
     lsmod | grep vboxguest &> /dev/null
     if [ $? == 0 ]; then
-        ffmpeg -f x11grab -s `xdpyinfo | grep 'dimensions:'|awk '{print $2}'` -i $DISPLAY -preset ultrafast -vcodec libx264 -tune zerolatency -threads 1 http://$1/feed.ffm
+        ffmpeg -f x11grab -s 1920x1080 -i $DISPLAY -preset ultrafast -vcodec libx264 -tune zerolatency -b:v 1M -g 10 -f flv rtmp://$1/live/screenmux
     else
-        ffmpeg -f fbdev -i /dev/fb0 -preset ultrafast -vcodec libx264 -tune zerolatency -threads 1 http://$1/feed.ffm
+        ffmpeg -f fbdev -i /dev/fb0 -s 1920x1080 -preset ultrafast -vcodec libx264 -tune zerolatency -b:v 1M -g 10 -f flv rtmp://$1/live/screenmux
     fi
 done;
 
