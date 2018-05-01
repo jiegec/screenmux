@@ -24,16 +24,21 @@ rtmp {
 }
 ```
 
-Start a screenmux server in A and B:
+Start a screenmux client in A and B:
 ```
-./server.py server_ip
+$ pip3 install -r requiredments.txt
+$ ./client.py server_ip
 ```
 
 From server, start, stop or switch clients:
 ```
-./client.py start client_a_ip:2323
-./client.py stop client_b_ip:2323
-./client.py switch client_a_ip:2323 client_b_ip:2323
+$ pip3 install -r requiredments.txt
+$ ./server.py
+client_a_ip joined
+client_b_ip joined
+> push client_a_ip
+> stop
+> rtmp rtmp_server_addr
 ```
 
 View streaming

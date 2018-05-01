@@ -5,9 +5,9 @@
 while true; do
     lsmod | grep vboxguest &> /dev/null
     if [ $? == 0 ]; then
-        ffmpeg -f x11grab -s 1920x1080 -i $DISPLAY -preset ultrafast -vcodec libx264 -tune zerolatency -b:v 1M -g 10 -f flv rtmp://$1/live/screenmux
+        ffmpeg -f x11grab -s 1920x1080 -i $DISPLAY -r 15 -preset ultrafast -vcodec libx264 -tune zerolatency -b:v 3M -g 10 -f flv rtmp://$1/live/screenmux
     else
-        ffmpeg -f fbdev -i /dev/fb0 -s 1920x1080 -preset ultrafast -vcodec libx264 -tune zerolatency -b:v 1M -g 10 -f flv rtmp://$1/live/screenmux
+        ffmpeg -f fbdev -i /dev/fb0 -s 1920x1080 -r 15 -preset ultrafast -vcodec libx264 -tune zerolatency -b:v 3M -g 10 -f flv rtmp://$1/live/screenmux
     fi
 done;
 
