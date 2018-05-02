@@ -10,6 +10,7 @@ from hbmqtt.client import MQTTClient
 from hbmqtt.mqtt.constants import QOS_0
 from tkinter import *
 from tkinter import messagebox
+from PIL import ImageTk, Image
 
 from yaml import load, dump
 try:
@@ -21,6 +22,7 @@ client_ips = set()
 clients = None
 server = None
 current_pushing = None
+screenshot = None
 
 
 @asyncio.coroutine
@@ -39,11 +41,22 @@ def mqtt_coro():
         ('connect', QOS_0),
         ('disconnect', QOS_0),
         ('report', QOS_0),
+        ('screenshot', QOS_0),
     ])
     yield from server.publish('refresh', b'')
     while 1:
         message = yield from server.deliver_message()
         topic = message.publish_packet.variable_header.topic_name
+        if topic == 'screenshot':
+            #print(repr(message.publish_packet.payload.data))
+            with open('screenshot.jpg', 'wb') as file:
+                file.write(message.publish_packet.payload.data)
+            img = Image.open('screenshot.jpg')
+            img = img.resize((screenshot.winfo_width(), screenshot.winfo_height()),
+                       Image.ANTIALIAS)
+            image = ImageTk.PhotoImage(img)
+            screenshot.create_image(0, 0, image=image, anchor=NW, tags="IMG")
+            continue
         payload = message.publish_packet.payload.data.decode('utf-8')
         if topic == 'connect':
             print('Client {} is connected'.format(payload))
@@ -86,7 +99,8 @@ async def stdin_coro():
             print('push [client_ip]: ask client_ip to push to server')
             print('stop: ask all clients to stop pushing')
             print('rtmp [rtmp_addr]: ask clients to push to new rtmp addr')
-            print('refresh: ask all clients to register again and report its pushing status')
+            print(
+                'refresh: ask all clients to register again and report its pushing status')
 
 
 @asyncio.coroutine
@@ -114,12 +128,21 @@ def do_push():
     global clients, server, client_ips
     if clients.curselection():
         client = clients.get(clients.curselection())
-        print(client)
         asyncio.ensure_future(server.publish('push', client.encode('utf-8')))
         current_pushing['text'] = 'Pushing: None'
         asyncio.ensure_future(server.publish('refresh', b''))
     else:
-        messagebox.showerror("screenmux", "Choose a client ip first")
+        messagebox.showerror("screenmux", "Choose a client first")
+
+
+def do_capture():
+    global clients, server, client_ips
+    if clients.curselection():
+        client = clients.get(clients.curselection())
+        screenshot_client['text'] = client
+        asyncio.ensure_future(server.publish('capture', client.encode('utf-8')))
+    else:
+        messagebox.showerror("screenmux", "Choose a client first")
 
 
 def do_stop():
@@ -138,18 +161,24 @@ if __name__ == '__main__':
 
     root = Tk()
     root.resizable(width=False, height=False)
-    root.geometry('800x600')
+    #root.geometry('800x600')
     root.title('screenmux')
     clients = Listbox(root)
-    clients.pack(fill=BOTH, expand=1)
+    clients.grid(row=0,column=0,columnspan=5,sticky=N+E+S+W)
     refresh = Button(root, text='Refresh', command=do_refresh)
-    refresh.pack()
+    refresh.grid(row=1,column=0)
     push = Button(root, text='Push', command=do_push)
-    push.pack()
+    push.grid(row=1,column=1)
+    capture = Button(root, text='Capture', command=do_capture)
+    capture.grid(row=1,column=2)
     stop = Button(root, text='Stop', command=do_stop)
-    stop.pack()
+    stop.grid(row=1,column=3)
     current_pushing = Label(root, text='Pushing: None')
-    current_pushing.pack()
+    current_pushing.grid(row=1,column=4)
+    screenshot = Canvas(root)
+    screenshot.grid(row=0,column=5,sticky=N+E+S+W)
+    screenshot_client = Label(root)
+    screenshot_client.grid(row=1,column=5)
 
     asyncio.ensure_future(run_tk(root))
     asyncio.get_event_loop().run_forever()
