@@ -45,9 +45,15 @@ client_b_ip joined
 ### Client
 First change the hostnames of the clients so that they are distinguishable. Then start the controlee:
 ```bash
-pip3 install -r requirements.txt
+sudo -H pip3 install -r requirements.txt
+sudp apt install x264 ffmpeg
+# check your ffmpeg installation is working properly
 # For testing purpose only, you should use a supervisor like systemd to manage the client process in case it dies
 ./client.py server_ip
+# For systemd
+sudo cp systemd/screenmux.service /etc/systemd/system
+sudo vim /etc/systemd/system/screenmux.service
+sudo systemctl enable --now screenmux
 ```
 Please ensure that the user used to start `client.py` have permission to read framebuffer, i.e., in `video` group or be root.
 

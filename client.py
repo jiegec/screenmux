@@ -122,7 +122,9 @@ def mqtt_coro():
                 print('Re-registering and publish my status to server')
                 yield from C.publish('connect', client_ip.encode('utf-8'), qos=QOS_0)
                 if process and process.poll() is None:
-                    yield from C.publish('report', 'from {} to {}'.format(client_ip, rtmp_addr).encode('utf-8'), qos=QOS_0)
+                    yield from C.publish('report', 'Pushing: from {} to {}'.format(client_ip, rtmp_addr).encode('utf-8'), qos=QOS_0)
+                if capture_timer is not None and not capture_timer.done():
+                    yield from C.publish('report', 'Capturing: from {}'.format(client_ip).encode('utf-8'), qos=QOS_0)
             elif topic == 'capture':
                 print('Server asking {} to capture.'.format(payload))
                 if payload != client_ip:

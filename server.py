@@ -44,12 +44,11 @@ def mqtt_coro():
         ('report', QOS_0),
         ('screenshot', QOS_0),
     ])
-    #yield from server.publish('refresh', b'')
     while 1:
         message = yield from server.deliver_message()
         topic = message.publish_packet.variable_header.topic_name
         if topic == 'screenshot':
-            #print(repr(message.publish_packet.payload.data))
+            # print(repr(message.publish_packet.payload.data))
             with open('screenshot.jpg', 'wb') as file:
                 file.write(message.publish_packet.payload.data)
             img = Image.open('screenshot.jpg')
@@ -74,7 +73,7 @@ def mqtt_coro():
                 clients.insert(END, ip)
         elif topic == 'report':
             print('Client reported status: {}'.format(payload))
-            current_pushing['text'] += 'Pushing: {}\n'.format(payload)
+            current_pushing['text'] += '{}\n'.format(payload)
     yield from server.disconnect()
 
 
@@ -152,6 +151,8 @@ def do_capture():
         client = clients.get(clients.curselection())
         screenshot_client['text'] = client
         asyncio.ensure_future(server.publish('capture', client.encode('utf-8')))
+        current_pushing['text'] = ''
+        asyncio.ensure_future(server.publish('refresh', b''))
     else:
         messagebox.showerror("screenmux", "Choose a client first")
 
@@ -171,8 +172,8 @@ if __name__ == '__main__':
     asyncio.ensure_future(mqtt_coro())
 
     root = Tk()
-    #root.resizable(width=False, height=False)
-    #root.geometry('800x800')
+    # root.resizable(width=False, height=False)
+    # root.geometry('800x800')
     root.title('screenmux')
     clients = Listbox(root)
     clients.grid(row=0,column=0,columnspan=3,sticky=N+E+S+W)
@@ -200,7 +201,7 @@ if __name__ == '__main__':
         Grid.columnconfigure(root, x, weight=1)
 
     Grid.rowconfigure(root, 0, weight=1)
-    Grid.rowconfigure(root, 5, weight=3)
+    Grid.rowconfigure(root, 4, weight=5)
 
     asyncio.ensure_future(run_tk(root))
     asyncio.get_event_loop().run_forever()
