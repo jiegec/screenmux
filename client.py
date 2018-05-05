@@ -12,7 +12,7 @@ import signal
 import time
 
 if len(sys.argv) != 2 and len(sys.argv) != 3:
-    print("Usage: python3 client.py [server_ip] [rtmp_server_ip]")
+    print("Usage: python3 client.py [server_ip] [rtmp_server_addr]")
     sys.exit(1)
 
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -24,29 +24,49 @@ except:
 finally:
     s.close()
 
-print('Client identifier: {}'.format(client_ip))
 
 if len(sys.argv) > 2:
-    rtmp_ip = sys.argv[2]
+    rtmp_addr = sys.argv[2]
 else:
-    rtmp_ip = sys.argv[1]
+    rtmp_addr = 'rtmp://{}/live/screenmux'.format(sys.argv[1])
 server_ip = sys.argv[1]
 process = None
+capture_timer = None
+
+print('Client identifier: {}, pushing to: {}'.format(client_ip, rtmp_addr))
 
 
 def kill_child():
     if process is not None:
         os.kill(process.pid, signal.SIGTERM)
         os.system('killall -9 ffmpeg')
+    sys.exit(0)
 
 
 atexit.register(kill_child)
 
 
 @asyncio.coroutine
+def capture_coro():
+    try:
+        C = MQTTClient(config={'auto_reconnect': False})
+        yield from C.connect(uri='mqtt://{}/'.format(server_ip))
+        while True:
+            screenshot = subprocess.Popen(["bash", "./capture.sh"])
+            screenshot.wait()
+            with open('capture.jpg', mode='rb') as file:
+                content = file.read()
+                yield from C.publish('screenshot', content, qos=QOS_0)
+            print('Captured a new screenshot.')
+            yield from asyncio.sleep(2)
+    except ClientException:
+        print('Capture task: Connection to server lost.')
+        pass
+
+
+@asyncio.coroutine
 def mqtt_coro():
-    global process
-    global rtmp_ip
+    global process, rtmp_addr, capture_timer
     C = MQTTClient(config={'auto_reconnect': False})
     yield from C.connect(uri='mqtt://{}/'.format(server_ip))
     yield from C.subscribe([
@@ -79,7 +99,8 @@ def mqtt_coro():
                         'Server asking me to push. Already streaming, ignoring.')
                 else:
                     print('Start streaming')
-                    process = subprocess.Popen(["bash", "./client.sh", rtmp_ip])
+                    process = subprocess.Popen(
+                        ["bash", "./client.sh", rtmp_addr])
                     print('ffmpeg started with PID {}', process.pid)
             elif topic == 'stop':
                 print('Server asking everyone to stop.')
@@ -90,24 +111,34 @@ def mqtt_coro():
                     os.system('kill -9 {pid}'.format(pid=process.pid))
                     os.system('killall -9 ffmpeg')
                     process = None
+                if capture_timer is not None and not capture_timer.done():
+                    print('Stopping my capturing.')
+                    capture_timer.cancel()
+                    capture_timer = None
             elif topic == 'rtmp':
                 print('Server changing rtmp server addr to {}.'.format(payload))
-                rtmp_ip = payload
+                rtmp_addr = payload
             elif topic == 'refresh':
                 print('Re-registering and publish my status to server')
                 yield from C.publish('connect', client_ip.encode('utf-8'), qos=QOS_0)
                 if process and process.poll() is None:
-                    yield from C.publish('report', 'from {} to {}'.format(client_ip, rtmp_ip).encode('utf-8'), qos=QOS_0)
+                    yield from C.publish('report', 'from {} to {}'.format(client_ip, rtmp_addr).encode('utf-8'), qos=QOS_0)
             elif topic == 'capture':
-                print('Server asking {} to push.'.format(payload))
+                print('Server asking {} to capture.'.format(payload))
                 if payload != client_ip:
-                    print('Not asking me to take screenshot. Ignoring.')
+                    print('Not asking me to take screenshot.')
+                    if capture_timer is not None and not capture_timer.done():
+                        print('Stopping my capturing.')
+                        capture_timer.cancel()
+                        capture_timer = None
+                    else:
+                        print('I am not capturing. Ignoring.')
                 else:
-                    screenshot = subprocess.Popen(["bash", "./capture.sh"])
-                    screenshot.wait()
-                    with open('capture.jpg', mode='rb') as file:
-                        content = file.read()
-                        yield from C.publish('screenshot', content, qos=QOS_0)
+                    if capture_timer is not None and not capture_timer.done():
+                        print('Capturing task already running.')
+                    else:
+                        print('Starting capturing task.')
+                        capture_timer = asyncio.ensure_future(capture_coro())
 
         yield from C.disconnect()
     except ClientException:

@@ -23,6 +23,7 @@ clients = None
 server = None
 current_pushing = None
 screenshot = None
+rtmp_addr = None
 
 
 @asyncio.coroutine
@@ -43,7 +44,7 @@ def mqtt_coro():
         ('report', QOS_0),
         ('screenshot', QOS_0),
     ])
-    yield from server.publish('refresh', b'')
+    #yield from server.publish('refresh', b'')
     while 1:
         message = yield from server.deliver_message()
         topic = message.publish_packet.variable_header.topic_name
@@ -73,7 +74,7 @@ def mqtt_coro():
                 clients.insert(END, ip)
         elif topic == 'report':
             print('Client reported status: {}'.format(payload))
-            current_pushing['text'] = 'Pushing: {}'.format(payload)
+            current_pushing['text'] += 'Pushing: {}\n'.format(payload)
     yield from server.disconnect()
 
 
@@ -91,6 +92,8 @@ async def stdin_coro():
         elif len(parts) == 1 and parts[0] == 'refresh':
             await C.publish('refresh', b'')
         elif len(parts) == 2 and parts[0] == 'push':
+            global rtmp_addr
+            await C.publish('rtmp', rtmp_addr.get())
             await C.publish('push', parts[1].encode('utf-8'))
         elif len(parts) == 2 and parts[0] == 'rtmp':
             await C.publish('rtmp', parts[1].encode('utf-8'))
@@ -120,17 +123,25 @@ def do_refresh():
     global clients, server, client_ips
     clients.delete(0, END)
     client_ips.clear()
-    current_pushing['text'] = 'Pushing: None'
+    current_pushing['text'] = ''
     asyncio.ensure_future(server.publish('refresh', b''))
+
+@asyncio.coroutine
+def push_coro(client, rtmp):
+    global server
+    yield from server.publish('rtmp', rtmp.encode('utf-8'))
+    yield from server.publish('push', client.encode('utf-8'))
+    yield from server.publish('refresh', b'')
 
 
 def do_push():
-    global clients, server, client_ips
+    global clients, server, client_ips, rtmp_addr
     if clients.curselection():
         client = clients.get(clients.curselection())
-        asyncio.ensure_future(server.publish('push', client.encode('utf-8')))
-        current_pushing['text'] = 'Pushing: None'
-        asyncio.ensure_future(server.publish('refresh', b''))
+        rtmp = rtmp_addr.get()
+        current_pushing['text'] = ''
+        print('Asking {} to push to {}'.format(client, rtmp))
+        asyncio.ensure_future(push_coro(client, rtmp))
     else:
         messagebox.showerror("screenmux", "Choose a client first")
 
@@ -164,26 +175,32 @@ if __name__ == '__main__':
     #root.geometry('800x800')
     root.title('screenmux')
     clients = Listbox(root)
-    clients.grid(row=0,column=0,columnspan=4,sticky=N+E+S+W)
+    clients.grid(row=0,column=0,columnspan=3,sticky=N+E+S+W)
+
     refresh = Button(root, text='Refresh', command=do_refresh)
     refresh.grid(row=1,column=0)
-    push = Button(root, text='Push', command=do_push)
-    push.grid(row=1,column=1)
     capture = Button(root, text='Capture', command=do_capture)
-    capture.grid(row=1,column=2)
+    capture.grid(row=1,column=1)
     stop = Button(root, text='Stop', command=do_stop)
-    stop.grid(row=1,column=3)
+    stop.grid(row=1,column=2)
+
+    push = Button(root, text='Push', command=do_push)
+    push.grid(row=2,column=0)
+    rtmp_addr = Entry(root)
+    rtmp_addr.insert(0, 'rtmp://thu-skyworks.org/live/screenmux')
+    rtmp_addr.grid(row=2,column=1,columnspan=2,sticky=N+E+S+W)
+
     current_pushing = Label(root, text='Pushing: None')
-    current_pushing.grid(row=2,column=0,columnspan=4,sticky=N+E+S+W)
+    current_pushing.grid(row=3,column=0,columnspan=3,sticky=N+E+S+W)
     screenshot = Canvas(root)
-    screenshot.grid(row=3,column=0,columnspan=4,sticky=N+E+S+W)
+    screenshot.grid(row=4,column=0,columnspan=3,sticky=N+E+S+W)
     screenshot_client = Label(root)
-    screenshot_client.grid(row=4,column=0,columnspan=4,sticky=N+E+S+W)
-    for x in range(4):
+    screenshot_client.grid(row=5,column=0,columnspan=3,sticky=N+E+S+W)
+    for x in range(3):
         Grid.columnconfigure(root, x, weight=1)
 
     Grid.rowconfigure(root, 0, weight=1)
-    Grid.rowconfigure(root, 3, weight=3)
+    Grid.rowconfigure(root, 5, weight=3)
 
     asyncio.ensure_future(run_tk(root))
     asyncio.get_event_loop().run_forever()
