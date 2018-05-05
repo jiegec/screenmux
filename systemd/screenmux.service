@@ -3,7 +3,8 @@ Description=Screenmux client
 
 [Service]
 Type=simple
-ExecStart=/path/to/python3 /path/to/screenmux/client.py server_ip
+WorkingDirectory=/path/to/screenmux
+ExecStart=/path/to/python3 ./client.py server_ip
 
 [Install]
 WantedBy=multi-user.target
