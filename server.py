@@ -73,10 +73,15 @@ def mqtt_coro():
             with open('screenshot.jpg', 'wb') as file:
                 file.write(message.publish_packet.payload.data)
             img = Image.open('screenshot.jpg')
-            img = img.resize((screenshot.winfo_width(), screenshot.winfo_height()),
+            width, height = img.size
+            win_width = screenshot.winfo_width()
+            win_height = screenshot.winfo_height()
+            new_width = min(win_width, win_height * width / height)
+            new_height = new_width * height / width
+            img = img.resize((int(new_width), int(new_height)),
                              Image.ANTIALIAS)
             image = ImageTk.PhotoImage(img)
-            screenshot.create_image(0, 0, image=image, anchor=NW, tags="IMG")
+            screenshot.create_image(win_width/2, win_height/2, image=image, anchor=CENTER, tags="IMG")
             continue
         payload = message.publish_packet.payload.data.decode('utf-8')
         if topic == 'connect':
