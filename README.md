@@ -65,3 +65,6 @@ You might need to sync your machines' time if confused by strange problems:
 sudo ntpdate ntp.tuna.tsinghua.edu.cn
 sudo /usr/sbin/VBoxService --timesync-set-start
 ```
+
+### License
+Screenmux is licensed under GNU General Public License v3. See LICENSE for full license.
