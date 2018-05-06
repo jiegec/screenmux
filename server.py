@@ -37,7 +37,7 @@ try:
 except ImportError:
     from yaml import Loader, Dumper
 
-client_ips = set()
+client_ips = list()
 clients = None
 server = None
 current_pushing = None
@@ -55,7 +55,7 @@ def broker_coro():
 
 @asyncio.coroutine
 def mqtt_coro():
-    global server
+    global server, client_ips
     server = MQTTClient()
     yield from server.connect(uri='mqtt://localhost/')
     yield from server.subscribe([
@@ -80,10 +80,12 @@ def mqtt_coro():
         payload = message.publish_packet.payload.data.decode('utf-8')
         if topic == 'connect':
             print('Client {} is connected'.format(payload))
-            client_ips.add(payload)
-            clients.delete(0, END)
-            for ip in client_ips:
-                clients.insert(END, ip)
+            if payload not in client_ips:
+                client_ips.append(payload)
+                client_ips.sort()
+                clients.delete(0, END)
+                for ip in client_ips:
+                    clients.insert(END, ip)
         elif topic == 'disconnect':
             print('Client {} is disconnected'.format(payload))
             if payload in client_ips:
@@ -205,38 +207,37 @@ if __name__ == '__main__':
     # root.geometry('800x800')
     root.title('screenmux')
     clients = Listbox(root)
-    clients.grid(row=0, column=0, columnspan=3, sticky=N+E+S+W)
+    clients.bind('<<ListboxSelect>>', lambda e: do_capture())
+    clients.grid(row=0, column=0, columnspan=2, sticky=N+E+S+W)
 
     refresh = Button(root, text='Refresh', command=do_refresh)
     refresh.grid(row=1, column=0)
-    capture = Button(root, text='Capture', command=do_capture)
-    capture.grid(row=1, column=1)
     stop = Button(root, text='Stop', command=do_stop)
-    stop.grid(row=1, column=2)
+    stop.grid(row=1, column=1)
 
     push = Button(root, text='Push', command=do_push)
     push.grid(row=2, column=0)
     rtmp_addr = Entry(root)
     rtmp_addr.insert(0, 'rtmp://thu-skyworks.org/live/screenmux1')
-    rtmp_addr.grid(row=2, column=1, columnspan=2, sticky=N+E+S+W)
+    rtmp_addr.grid(row=2, column=1, sticky=N+E+S+W)
 
     push2 = Button(root, text='Push', command=do_push2)
     push2.grid(row=3, column=0)
     rtmp_addr2 = Entry(root)
     rtmp_addr2.insert(0, 'rtmp://thu-skyworks.org/live/screenmux2')
-    rtmp_addr2.grid(row=3, column=1, columnspan=2, sticky=N+E+S+W)
+    rtmp_addr2.grid(row=3, column=1, sticky=N+E+S+W)
 
-    current_pushing = Label(root, text='Pushing: None')
-    current_pushing.grid(row=4, column=0, columnspan=3, sticky=N+E+S+W)
     screenshot = Canvas(root)
-    screenshot.grid(row=5, column=0, columnspan=3, sticky=N+E+S+W)
+    screenshot.grid(row=4, column=0, columnspan=2, sticky=N+E+S+W)
     screenshot_client = Label(root)
-    screenshot_client.grid(row=6, column=0, columnspan=3, sticky=N+E+S+W)
-    for x in range(3):
+    screenshot_client.grid(row=5, column=0, columnspan=2, sticky=N+E+S+W)
+    current_pushing = Label(root, text='Pushing: None')
+    current_pushing.grid(row=6, column=0, columnspan=2, sticky=N+E+S+W)
+    for x in range(2):
         Grid.columnconfigure(root, x, weight=1)
 
     Grid.rowconfigure(root, 0, weight=1)
-    Grid.rowconfigure(root, 5, weight=5)
+    Grid.rowconfigure(root, 4, weight=5)
 
     root.lift()
     asyncio.ensure_future(run_tk(root))
