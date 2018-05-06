@@ -24,7 +24,7 @@ while true; do
     if [ -z "$DISPLAY" ]; then
         ffmpeg -f fbdev -i /dev/fb0 $2 -f flv $1
     else
-        ffmpeg -f x11grab -i $DISPLAY $2 -f flv $1
+        ffmpeg -f x11grab -s `xdpyinfo | grep 'dimensions:'|awk '{print $2}'` -i $DISPLAY $2 -f flv $1
     fi
 done;
 

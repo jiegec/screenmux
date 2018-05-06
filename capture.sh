@@ -19,8 +19,8 @@
 
 
 if [ -z "$DISPLAY" ]; then
-    ffmpeg -f fbdev -i /dev/fb0 -framerate 1 -s 1920x1080 -y -frames:v 1 capture.jpg
+    ffmpeg -f fbdev -i /dev/fb0 -framerate 1 -y -frames:v 1 capture.jpg
 else
-    ffmpeg -f x11grab -framerate 1 -s 1920x1080 -i $DISPLAY -y -frames:v 1 capture.jpg
+    ffmpeg -f x11grab -s `xdpyinfo | grep 'dimensions:'|awk '{print $2}'` -framerate 1 -i $DISPLAY -y -frames:v 1 capture.jpg
 fi
 
