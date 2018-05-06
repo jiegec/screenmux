@@ -23,6 +23,7 @@ import aioconsole
 import os
 import sys
 import json
+import socket
 from asyncio.streams import StreamWriter, FlowControlMixin
 from hbmqtt.broker import Broker
 from hbmqtt.client import MQTTClient
@@ -196,6 +197,15 @@ def do_stop():
 
 
 if __name__ == '__main__':
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(('10.255.255.255', 1))
+        server_addr = '{} {}'.format(socket.gethostname(), s.getsockname()[0])
+    except:
+        server_addr = socket.gethostname()
+    finally:
+        s.close()
+    print('This server runs at {}'.format(server_addr))
     formatter = "[%(asctime)s] :: %(levelname)s :: %(name)s :: %(message)s"
     logging.basicConfig(level=logging.ERROR, format=formatter)
     asyncio.ensure_future(broker_coro())
@@ -204,7 +214,7 @@ if __name__ == '__main__':
 
     root = Tk()
     # root.resizable(width=False, height=False)
-    # root.geometry('800x800')
+    root.geometry('800x800')
     root.title('screenmux')
     clients = Listbox(root)
     clients.bind('<<ListboxSelect>>', lambda e: do_capture())
