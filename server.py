@@ -45,6 +45,7 @@ current_pushing = None
 screenshot = None
 rtmp_addr = None
 rtmp_addr2 = None
+params = None
 
 
 @asyncio.coroutine
@@ -155,21 +156,21 @@ def do_refresh():
 
 
 @asyncio.coroutine
-def push_coro(client, rtmp):
+def push_coro(client, rtmp, params):
     global server
-    content = {'rtmp': rtmp, 'client': client}
+    content = {'rtmp': rtmp, 'client': client, 'params': params}
     yield from server.publish('push', json.dumps(content).encode('utf-8'))
     yield from server.publish('refresh', b'')
 
 
 def do_push_real(real_rtmp_addr):
-    global clients, server, client_ips
+    global clients, server, client_ips, params
     if clients.curselection():
         client = clients.get(clients.curselection())
         rtmp = real_rtmp_addr.get()
         current_pushing['text'] = ''
-        print('Asking {} to push to {}'.format(client, rtmp))
-        asyncio.ensure_future(push_coro(client, rtmp))
+        print('Asking {} to push to {} with params {}'.format(client, rtmp, params.get()))
+        asyncio.ensure_future(push_coro(client, rtmp, params.get()))
     else:
         messagebox.showerror("screenmux", "Choose a client first")
 
@@ -230,29 +231,35 @@ if __name__ == '__main__':
     stop = Button(root, text='Stop', command=do_stop)
     stop.grid(row=1, column=1)
 
+    param_label = Label(root, text='Additional FFmpeg params:')
+    param_label.grid(row=2, column=0)
+    params = Entry(root)
+    params.insert(0, '-s 1920x1080 -r 15 -preset ultrafast -vcodec libx264 -tune zerolatency -b:v 3M -g 10')
+    params.grid(row=2, column=1, sticky=N+E+S+W)
+
     push = Button(root, text='Push', command=do_push)
-    push.grid(row=2, column=0)
+    push.grid(row=3, column=0)
     rtmp_addr = Entry(root)
     rtmp_addr.insert(0, 'rtmp://thu-skyworks.org/live/screenmux1')
-    rtmp_addr.grid(row=2, column=1, sticky=N+E+S+W)
+    rtmp_addr.grid(row=3, column=1, sticky=N+E+S+W)
 
     push2 = Button(root, text='Push', command=do_push2)
-    push2.grid(row=3, column=0)
+    push2.grid(row=4, column=0)
     rtmp_addr2 = Entry(root)
     rtmp_addr2.insert(0, 'rtmp://thu-skyworks.org/live/screenmux2')
-    rtmp_addr2.grid(row=3, column=1, sticky=N+E+S+W)
+    rtmp_addr2.grid(row=4, column=1, sticky=N+E+S+W)
 
     screenshot = Canvas(root)
-    screenshot.grid(row=4, column=0, columnspan=2, sticky=N+E+S+W)
+    screenshot.grid(row=5, column=0, columnspan=2, sticky=N+E+S+W)
     screenshot_client = Label(root)
-    screenshot_client.grid(row=5, column=0, columnspan=2, sticky=N+E+S+W)
+    screenshot_client.grid(row=6, column=0, columnspan=2, sticky=N+E+S+W)
     current_pushing = Label(root, text='Pushing: None')
-    current_pushing.grid(row=6, column=0, columnspan=2, sticky=N+E+S+W)
+    current_pushing.grid(row=7, column=0, columnspan=2, sticky=N+E+S+W)
     for x in range(2):
         Grid.columnconfigure(root, x, weight=1)
 
     Grid.rowconfigure(root, 0, weight=1)
-    Grid.rowconfigure(root, 4, weight=5)
+    Grid.rowconfigure(root, 5, weight=5)
 
     root.lift()
     asyncio.ensure_future(run_tk(root))

@@ -124,23 +124,23 @@ def mqtt_coro():
                     else:
                         print('Rtmp addr changed to {}. Pushing to the new addr.'.format(
                             msg['rtmp']))
-                        print("Stop streaming now")
+                        print("Stop streaming now.")
                         os.system('kill -9 {pid}'.format(pid=process.pid))
                         os.system('killall -9 ffmpeg')
                         process = None
 
                         rtmp_addr = msg['rtmp']
-                        print('Start streaming to {}'.format(rtmp_addr))
+                        print('Start streaming to {} with params {}'.format(rtmp_addr, msg['params']))
                         process = subprocess.Popen(
-                            ["bash", "./client.sh", rtmp_addr])
+                            ["bash", "./client.sh", rtmp_addr, msg['params']])
                         print('ffmpeg started with PID {}', process.pid)
                 else:
                     print('Start streaming')
-                    print('Server changing rtmp server addr to {}.'.format(
-                        msg['rtmp']))
+                    print('With rtmp server addr {} and params {}.'.format(
+                        msg['rtmp'], msg['params']))
                     rtmp_addr = msg['rtmp']
                     process = subprocess.Popen(
-                        ["bash", "./client.sh", rtmp_addr])
+                        ["bash", "./client.sh", rtmp_addr, msg['params']])
                     print('ffmpeg started with PID {}', process.pid)
             elif topic == 'stop':
                 print('Server asking everyone to stop.')
