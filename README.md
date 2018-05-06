@@ -66,5 +66,27 @@ sudo ntpdate ntp.tuna.tsinghua.edu.cn
 sudo /usr/sbin/VBoxService --timesync-set-start
 ```
 
+### Stream switching example
+Configure OBS With three sources:
+```
+1. Video Input
+2. RTMP streaming remote rtmp://server_ip/live/screenmux1
+3. RTMP streaming remote rtmp://server_ip/live/screenmux2
+```
+
+Start Workshop Mode, then:
+```
+1. Push Machine A to screenmux1
+2. Push Machine B to screenmux2
+Then you should see Machine A on your left. Apply it to the right side.
+3. Change the priority of screenmux2 above screenmux1
+You should see Machine B on your left. Apply it to the right side.
+4. Push Machine C to screenmux1
+4. Change the priority of screenmux1 above screenmux2
+You should see Machine C on your left. Apply it to the right side.
+```
+
+You should get the desired screen switching behavior now.
+
 ### License
 Screenmux is licensed under GNU General Public License v3. See LICENSE for full license.

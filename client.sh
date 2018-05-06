@@ -21,11 +21,10 @@
 # trap 'kill -TERM $PID' TERM INT
 
 while true; do
-    lsmod | grep vboxguest &> /dev/null
-    if [ $? == 0 ]; then
-        ffmpeg -f x11grab -i $DISPLAY $2 -f flv $1
-    else
+    if [ -z "$DISPLAY" ]; then
         ffmpeg -f fbdev -i /dev/fb0 $2 -f flv $1
+    else
+        ffmpeg -f x11grab -i $DISPLAY $2 -f flv $1
     fi
 done;
 
