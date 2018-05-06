@@ -10,6 +10,7 @@ import subprocess
 import atexit
 import signal
 import time
+import json
 
 if len(sys.argv) != 2 and len(sys.argv) != 3:
     print("Usage: python3 client.py [server_ip] [rtmp_server_addr]")
@@ -85,20 +86,41 @@ def mqtt_coro():
             topic = message.publish_packet.variable_header.topic_name
             payload = message.publish_packet.payload.data.decode('utf-8')
             if topic == 'push':
-                print('Server asking {} to push.'.format(payload))
-                if payload != client_ip:
+                msg = json.loads(payload)
+                print('Server asking {} to push.'.format(msg['client']))
+                if msg['client'] != client_ip:
                     if not process or process.poll() is not None:
                         print('I am not streaming. Ignoring.')
                     else:
+                        if rtmp_addr == msg['rtmp']:
+                            print("Stop streaming now")
+                            os.system('kill -9 {pid}'.format(pid=process.pid))
+                            os.system('killall -9 ffmpeg')
+                            process = None
+                        else:
+                            print('Server requested rtmp addr is not mime, ignoring.')
+                elif process and process.poll() is None:
+                    print('Server asking me to push.')
+                    if rtmp_addr == msg['rtmp']:
+                        print('Rtmp addr not changed. Ignoring')
+                    else:
+                        print('Rtmp addr changed to {}. Pushing to the new addr.'.format(
+                            msg['rtmp']))
                         print("Stop streaming now")
                         os.system('kill -9 {pid}'.format(pid=process.pid))
                         os.system('killall -9 ffmpeg')
                         process = None
-                elif process and process.poll() is None:
-                    print(
-                        'Server asking me to push. Already streaming, ignoring.')
+
+                        rtmp_addr = msg['rtmp']
+                        print('Start streaming to {}'.format(rtmp_addr))
+                        process = subprocess.Popen(
+                            ["bash", "./client.sh", rtmp_addr])
+                        print('ffmpeg started with PID {}', process.pid)
                 else:
                     print('Start streaming')
+                    print('Server changing rtmp server addr to {}.'.format(
+                        msg['rtmp']))
+                    rtmp_addr = msg['rtmp']
                     process = subprocess.Popen(
                         ["bash", "./client.sh", rtmp_addr])
                     print('ffmpeg started with PID {}', process.pid)
@@ -115,9 +137,6 @@ def mqtt_coro():
                     print('Stopping my capturing.')
                     capture_timer.cancel()
                     capture_timer = None
-            elif topic == 'rtmp':
-                print('Server changing rtmp server addr to {}.'.format(payload))
-                rtmp_addr = payload
             elif topic == 'refresh':
                 print('Re-registering and publish my status to server')
                 yield from C.publish('connect', client_ip.encode('utf-8'), qos=QOS_0)

@@ -5,6 +5,8 @@ Description=Screenmux client
 Type=simple
 WorkingDirectory=/path/to/screenmux
 ExecStart=/path/to/python3 ./client.py server_ip
+Restart=always
+RestartSec=3
 
 [Install]
 WantedBy=multi-user.target

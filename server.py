@@ -4,6 +4,7 @@ import asyncio
 import aioconsole
 import os
 import sys
+import json
 from asyncio.streams import StreamWriter, FlowControlMixin
 from hbmqtt.broker import Broker
 from hbmqtt.client import MQTTClient
@@ -24,6 +25,7 @@ server = None
 current_pushing = None
 screenshot = None
 rtmp_addr = None
+rtmp_addr2 = None
 
 
 @asyncio.coroutine
@@ -53,7 +55,7 @@ def mqtt_coro():
                 file.write(message.publish_packet.payload.data)
             img = Image.open('screenshot.jpg')
             img = img.resize((screenshot.winfo_width(), screenshot.winfo_height()),
-                       Image.ANTIALIAS)
+                             Image.ANTIALIAS)
             image = ImageTk.PhotoImage(img)
             screenshot.create_image(0, 0, image=image, anchor=NW, tags="IMG")
             continue
@@ -77,6 +79,7 @@ def mqtt_coro():
     yield from server.disconnect()
 
 
+'''
 async def stdin_coro():
     C = MQTTClient()
     await C.connect(uri='mqtt://localhost/')
@@ -91,8 +94,6 @@ async def stdin_coro():
         elif len(parts) == 1 and parts[0] == 'refresh':
             await C.publish('refresh', b'')
         elif len(parts) == 2 and parts[0] == 'push':
-            global rtmp_addr
-            await C.publish('rtmp', rtmp_addr.get())
             await C.publish('push', parts[1].encode('utf-8'))
         elif len(parts) == 2 and parts[0] == 'rtmp':
             await C.publish('rtmp', parts[1].encode('utf-8'))
@@ -103,6 +104,7 @@ async def stdin_coro():
             print('rtmp [rtmp_addr]: ask clients to push to new rtmp addr')
             print(
                 'refresh: ask all clients to register again and report its pushing status')
+'''
 
 
 @asyncio.coroutine
@@ -125,32 +127,41 @@ def do_refresh():
     current_pushing['text'] = ''
     asyncio.ensure_future(server.publish('refresh', b''))
 
+
 @asyncio.coroutine
 def push_coro(client, rtmp):
     global server
-    yield from server.publish('rtmp', rtmp.encode('utf-8'))
-    yield from server.publish('push', client.encode('utf-8'))
+    content = {'rtmp': rtmp, 'client': client}
+    yield from server.publish('push', json.dumps(content).encode('utf-8'))
     yield from server.publish('refresh', b'')
 
 
-def do_push():
-    global clients, server, client_ips, rtmp_addr
+def do_push_real(real_rtmp_addr):
+    global clients, server, client_ips
     if clients.curselection():
         client = clients.get(clients.curselection())
-        rtmp = rtmp_addr.get()
+        rtmp = real_rtmp_addr.get()
         current_pushing['text'] = ''
         print('Asking {} to push to {}'.format(client, rtmp))
         asyncio.ensure_future(push_coro(client, rtmp))
     else:
         messagebox.showerror("screenmux", "Choose a client first")
 
+def do_push():
+    global rtmp_addr
+    do_push_real(rtmp_addr)
+
+def do_push2():
+    global rtmp_addr2
+    do_push_real(rtmp_addr2)
 
 def do_capture():
     global clients, server, client_ips
     if clients.curselection():
         client = clients.get(clients.curselection())
         screenshot_client['text'] = client
-        asyncio.ensure_future(server.publish('capture', client.encode('utf-8')))
+        asyncio.ensure_future(server.publish(
+            'capture', client.encode('utf-8')))
         current_pushing['text'] = ''
         asyncio.ensure_future(server.publish('refresh', b''))
     else:
@@ -168,7 +179,7 @@ if __name__ == '__main__':
     formatter = "[%(asctime)s] :: %(levelname)s :: %(name)s :: %(message)s"
     logging.basicConfig(level=logging.ERROR, format=formatter)
     asyncio.ensure_future(broker_coro())
-    asyncio.ensure_future(stdin_coro())
+    # asyncio.ensure_future(stdin_coro())
     asyncio.ensure_future(mqtt_coro())
 
     root = Tk()
@@ -176,32 +187,39 @@ if __name__ == '__main__':
     # root.geometry('800x800')
     root.title('screenmux')
     clients = Listbox(root)
-    clients.grid(row=0,column=0,columnspan=3,sticky=N+E+S+W)
+    clients.grid(row=0, column=0, columnspan=3, sticky=N+E+S+W)
 
     refresh = Button(root, text='Refresh', command=do_refresh)
-    refresh.grid(row=1,column=0)
+    refresh.grid(row=1, column=0)
     capture = Button(root, text='Capture', command=do_capture)
-    capture.grid(row=1,column=1)
+    capture.grid(row=1, column=1)
     stop = Button(root, text='Stop', command=do_stop)
-    stop.grid(row=1,column=2)
+    stop.grid(row=1, column=2)
 
     push = Button(root, text='Push', command=do_push)
-    push.grid(row=2,column=0)
+    push.grid(row=2, column=0)
     rtmp_addr = Entry(root)
-    rtmp_addr.insert(0, 'rtmp://thu-skyworks.org/live/screenmux')
-    rtmp_addr.grid(row=2,column=1,columnspan=2,sticky=N+E+S+W)
+    rtmp_addr.insert(0, 'rtmp://thu-skyworks.org/live/screenmux1')
+    rtmp_addr.grid(row=2, column=1, columnspan=2, sticky=N+E+S+W)
+
+    push2 = Button(root, text='Push', command=do_push2)
+    push2.grid(row=3, column=0)
+    rtmp_addr2 = Entry(root)
+    rtmp_addr2.insert(0, 'rtmp://thu-skyworks.org/live/screenmux2')
+    rtmp_addr2.grid(row=3, column=1, columnspan=2, sticky=N+E+S+W)
 
     current_pushing = Label(root, text='Pushing: None')
-    current_pushing.grid(row=3,column=0,columnspan=3,sticky=N+E+S+W)
+    current_pushing.grid(row=4, column=0, columnspan=3, sticky=N+E+S+W)
     screenshot = Canvas(root)
-    screenshot.grid(row=4,column=0,columnspan=3,sticky=N+E+S+W)
+    screenshot.grid(row=5, column=0, columnspan=3, sticky=N+E+S+W)
     screenshot_client = Label(root)
-    screenshot_client.grid(row=5,column=0,columnspan=3,sticky=N+E+S+W)
+    screenshot_client.grid(row=6, column=0, columnspan=3, sticky=N+E+S+W)
     for x in range(3):
         Grid.columnconfigure(root, x, weight=1)
 
     Grid.rowconfigure(root, 0, weight=1)
-    Grid.rowconfigure(root, 4, weight=5)
+    Grid.rowconfigure(root, 5, weight=5)
 
+    root.lift()
     asyncio.ensure_future(run_tk(root))
     asyncio.get_event_loop().run_forever()

@@ -35,11 +35,6 @@ Start the controller:
 ```bash
 $ pip3 install -r requirements.txt
 $ ./server.py
-client_a_ip joined
-client_b_ip joined
-> push client_a_ip
-> stop
-> rtmp rtmp_server_addr
 ```
 
 ### Client
@@ -47,7 +42,7 @@ First change the hostnames of the clients so that they are distinguishable. Then
 ```bash
 sudo -H pip3 install -r requirements.txt
 sudp apt install x264 ffmpeg
-# check your ffmpeg installation is working properly
+# Check your ffmpeg installation is working properly
 # For testing purpose only, you should use a supervisor like systemd to manage the client process in case it dies
 ./client.py server_ip
 # For systemd
@@ -60,7 +55,8 @@ Please ensure that the user used to start `client.py` have permission to read fr
 ### Viewer
 View streaming
 ```bash
-vlc rtmp://server_ip/live/screenmux --loop
+vlc rtmp://server_ip/live/screenmux1 --loop
+vlc rtmp://server_ip/live/screenmux2 --loop
 ```
 
 ### Notice
