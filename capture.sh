@@ -17,6 +17,12 @@
 # along with screenmux.  If not, see <http://www.gnu.org/licenses/>.
 # 
 
+if [ -z "$DISPLAY" ]; then
+    DISPLAY=$(w -hs | awk -v tty="$(cat /sys/class/tty/tty0/active)" '$2 == tty && $3 != "-" {print $3}')
+    USER=$(w -hs | awk -v tty="$(cat /sys/class/tty/tty0/active)" '$2 == tty && $3 != "-" {print $1}')
+    eval XAUTHORITY=~$USER/.Xauthority
+    export XAUTHORITY
+fi
 
 if [ -z "$DISPLAY" ]; then
     ffmpeg -f fbdev -i /dev/fb0 -framerate 1 -y -frames:v 1 capture.jpg

@@ -7,6 +7,7 @@ WorkingDirectory=/path/to/screenmux
 ExecStart=/path/to/python3 ./client.py server_ip
 Restart=always
 RestartSec=3
+Group=video
 
 [Install]
 WantedBy=multi-user.target

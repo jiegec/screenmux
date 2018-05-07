@@ -171,8 +171,6 @@ def do_push_real(real_rtmp_addr):
         current_pushing['text'] = ''
         print('Asking {} to push to {} with params {}'.format(client, rtmp, params.get()))
         asyncio.ensure_future(push_coro(client, rtmp, params.get()))
-    else:
-        messagebox.showerror("screenmux", "Choose a client first")
 
 def do_push():
     global rtmp_addr

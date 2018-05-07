@@ -17,8 +17,12 @@
 # along with screenmux.  If not, see <http://www.gnu.org/licenses/>.
 # 
 
-# ffmpeg -f alsa -i hw:0 -f x11grab -s `xdpyinfo | grep 'dimensions:'|awk '{print $2}'` -i $DISPLAY -preset ultrafast -vcodec libx264 -tune zerolatency http://$1/feed.ffm
-# trap 'kill -TERM $PID' TERM INT
+if [ -z "$DISPLAY" ]; then
+    DISPLAY=$(w -hs | awk -v tty="$(cat /sys/class/tty/tty0/active)" '$2 == tty && $3 != "-" {print $3}')
+    USER=$(w -hs | awk -v tty="$(cat /sys/class/tty/tty0/active)" '$2 == tty && $3 != "-" {print $1}')
+    eval XAUTHORITY=~$USER/.Xauthority
+    export XAUTHORITY
+fi
 
 while true; do
     if [ -z "$DISPLAY" ]; then
