@@ -17,6 +17,12 @@
 # along with screenmux.  If not, see <http://www.gnu.org/licenses/>.
 # 
 
+_term() {
+    kill -TERM "$child" 2>/dev/null
+    exit 0
+}
+trap _term SIGTERM
+
 DIMENSIONS=$(xdpyinfo | grep 'dimensions:' | awk '{print $2;exit}')
 
 # Debian
@@ -41,9 +47,13 @@ fi
 
 while true; do
     if [ -z "$DIMENSIONS" ]; then
-        ffmpeg -f fbdev -i /dev/fb0 $2 -f flv $1
+        ffmpeg -f fbdev -i /dev/fb0 $2 -f flv $1 &
+        child=$!
+        wait "$child"
     else
-        ffmpeg -f x11grab -s $DIMENSIONS -i $DISPLAY $2 -f flv $1
+        ffmpeg -f x11grab -s $DIMENSIONS -i $DISPLAY $2 -f flv $1 &
+        child=$!
+        wait "$child"
     fi
 done;
 

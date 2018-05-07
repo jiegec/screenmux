@@ -58,7 +58,6 @@ print('Client identifier: {}, pushing to: {}'.format(client_ip, rtmp_addr))
 def kill_child():
     if process is not None:
         os.kill(process.pid, signal.SIGTERM)
-        os.system('killall -9 ffmpeg')
     sys.exit(0)
 
 
@@ -112,8 +111,7 @@ def mqtt_coro():
                     else:
                         if rtmp_addr == msg['rtmp']:
                             print("Stop streaming now")
-                            os.system('kill -9 {pid}'.format(pid=process.pid))
-                            os.system('killall -9 ffmpeg')
+                            os.kill(process.pid, signal.SIGTERM)
                             process = None
                         else:
                             print('Server requested rtmp addr is not mime, ignoring.')
@@ -125,15 +123,14 @@ def mqtt_coro():
                         print('Rtmp addr changed to {}. Pushing to the new addr.'.format(
                             msg['rtmp']))
                         print("Stop streaming now.")
-                        os.system('kill -9 {pid}'.format(pid=process.pid))
-                        os.system('killall -9 ffmpeg')
+                        os.kill(process.pid, signal.SIGTERM)
                         process = None
 
                         rtmp_addr = msg['rtmp']
                         print('Start streaming to {} with params {}'.format(rtmp_addr, msg['params']))
                         process = subprocess.Popen(
                             ["bash", "./client.sh", rtmp_addr, msg['params']])
-                        print('ffmpeg started with PID {}', process.pid)
+                        print('ffmpeg started with PID {}'.format(process.pid))
                 else:
                     print('Start streaming')
                     print('With rtmp server addr {} and params {}.'.format(
@@ -141,15 +138,14 @@ def mqtt_coro():
                     rtmp_addr = msg['rtmp']
                     process = subprocess.Popen(
                         ["bash", "./client.sh", rtmp_addr, msg['params']])
-                    print('ffmpeg started with PID {}', process.pid)
+                    print('ffmpeg started with PID {}'.format(process.pid))
             elif topic == 'stop':
                 print('Server asking everyone to stop.')
                 if not process or process.poll() is not None:
                     print('I am not streaming. Ignoring.')
                 else:
                     print("Stop streaming now")
-                    os.system('kill -9 {pid}'.format(pid=process.pid))
-                    os.system('killall -9 ffmpeg')
+                    os.kill(process.pid, signal.SIGTERM)
                     process = None
                 if capture_timer is not None and not capture_timer.done():
                     print('Stopping my capturing.')
