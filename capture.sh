@@ -17,27 +17,7 @@
 # along with screenmux.  If not, see <http://www.gnu.org/licenses/>.
 # 
 
-DIMENSIONS=$(xdpyinfo | grep 'dimensions:' | awk '{print $2;exit}')
-
-# Debian
-if [ -z "$DIMENSIONS" ]; then
-    DISPLAY=$(w -hs | awk -v tty="$(cat /sys/class/tty/tty0/active)" '$2 == tty && $3 != "-" {print $3; exit}')
-    USER=$(w -hs | awk -v tty="$(cat /sys/class/tty/tty0/active)" '$2 == tty && $3 != "-" {print $1; exit}')
-    eval XAUTHORITY=~$USER/.Xauthority
-    export DISPLAY
-    export XAUTHORITY
-    DIMENSIONS=$(xdpyinfo | grep 'dimensions:' | awk '{print $2;exit}')
-fi
-
-# GDM + Archlinux
-if [ -z "$DIMENSIONS" ]; then
-    DISPLAY=$(w -hs | awk 'match($2, /:[0-9]+/) {print $2; exit}')
-    USER=$(w -hs | awk 'match($2, /:[0-9]+/) {print $1; exit}')
-    eval XAUTHORITY=/run/user/$(id -u $USER)/gdm/Xauthority
-    export DISPLAY
-    export XAUTHORITY
-    DIMENSIONS=$(xdpyinfo | grep 'dimensions:' | awk '{print $2;exit}')
-fi
+. x11.sh
 
 if [ -z "$DIMENSIONS" ]; then
     ffmpeg -f fbdev -i /dev/fb0 -framerate 1 -y -frames:v 1 capture.jpg
