@@ -27,11 +27,11 @@ trap _term SIGTERM
 
 while true; do
     if [ -z "$DIMENSIONS" ]; then
-        ffmpeg -f fbdev -i /dev/fb0 $2 -f flv $1 &
+        ffmpeg -f fbdev -i /dev/fb0 "$2" -f flv "$1" &
         child=$!
         wait "$child"
     else
-        ffmpeg -f x11grab -s $DIMENSIONS -i $DISPLAY $2 -f flv $1 &
+        ffmpeg -f x11grab -s "$DIMENSIONS" -i "$DISPLAY" "$2" -f flv "$1" &
         child=$!
         wait "$child"
     fi

@@ -22,6 +22,6 @@
 if [ -z "$DIMENSIONS" ]; then
     ffmpeg -f fbdev -i /dev/fb0 -framerate 1 -y -frames:v 1 capture.jpg
 else
-    ffmpeg -f x11grab -s $DIMENSIONS -framerate 1 -i $DISPLAY -y -frames:v 1 capture.jpg
+    ffmpeg -f x11grab -s "$DIMENSIONS" -framerate 1 -i "$DISPLAY" -y -frames:v 1 capture.jpg
 fi
 
